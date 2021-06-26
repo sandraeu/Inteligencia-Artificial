@@ -11,6 +11,8 @@ const heuristica = [[120,-20,20,5,5,20,-20,120],
                   [120,-20,20,5,5,20,-20,120]];
 
 const mejores = [0, 55, 56, 57, 58, 59, 60, 61, 62, 63];
+
+
 var oponente;
 
 app.listen(process.env.PORT || 3000, () =>{
@@ -41,6 +43,7 @@ app.get('/', (req, res)=>{
     let numero = pos[0] + "" +pos[1];
     //se envia a imprimir el numero en la pagina
     res.send(numero);
+     
 });
 
 function getRandomInt(min, max) {
@@ -49,14 +52,43 @@ function getRandomInt(min, max) {
 
 function jugar(tablero, turno, profundidad, heuristica){
     nodos = 0;
+    let cont = -2147483648;
+    let mejor_pos = null;
+
+    //let movimientos = posibles_movimientos(tablero,turno);
+
+    for(let pos of posibles_movimientos(tablero,turno)){
+        console.log("pos", pos);
+        //---jugar hasta aqui funciona bien
+        //let rand = getRandomInt(0, movimientos.length-1);
+        //console.log("le", movimientos.length);
+        
+        let nuevo = nuevo_tablero(tablero,pos, turno);
+        let min = -2147483648;
+        let max = 2147483647;
+        let cont2 = MINIMAX(nuevo, turno, profundidad-1, false, min, max, heuristica);
+
+        if(cont2 != null && cont2 > cont ){
+            cont = cont2;
+            mejor_pos = pos;
+        }
+        //return mejor_pos;
+        //return pos;
+        //return movimientos[rand];
+    }
+    
+    nodos = 0;
     let mejor_punteo = -2147483648;
     let mejor_movimiento = null;
 
     let movimientos = posibles_movimientos(tablero,turno);
 
-    let rand = getRandomInt(0, movimientos.length-1);
+    let rand = getRandomInt(0, movimientos.length);
     console.log("le", movimientos.length);
     return movimientos[rand];
+
+
+    
 
     /*for(let pos of posibles_movimientos(tablero,turno)){
         console.log("pos", pos);
@@ -65,6 +97,89 @@ function jugar(tablero, turno, profundidad, heuristica){
         
     }*/
 }
+
+function MINIMAX(nuevotab, turno, profundidad, bandera, a, b, heuristica){
+    nodos= nodos + 1;
+    
+    if(profundidad == 0 || sinmovimientos(nuevotab)){
+        //return valor heuristica 
+        return null;
+    }
+
+    if(bandera && !tienemovimientos(nuevotab, turno) || (!bandera && !tienemovimientos(nuevotab,((turno==0) ? 1 : 0)))){
+        return MINIMAX(nuevotab,turno, profundidad-1,!bandera,a,b,heuristica);
+    }
+
+    let cont;
+
+    if(bandera){
+        //MAX
+        cont = -2147483648;
+
+        for(let pos of posibles_movimientos(nuevotab,turno)){
+            
+            let nuevo = nuevo_tablero(nuevotab, pos,turno);
+
+            //se realiza una llamada recursiva 
+            let cont2 = MINIMAX(nuevo, turno, profundidad-1,false,a,b, heuristica);
+            
+            if(cont2 > cont){
+                cont = cont2;
+            }
+
+            if(cont > a){
+                a = cont;
+            }
+
+            if(b <= a){
+                break;
+            }
+        }
+    }else{
+        //MIN
+        cont = 2147483647;
+
+        for(let pos of posibles_movimientos(nuevotab, ((turno==0) ? 1 : 0))){
+            let nuevo = nuevo_tablero(nuevotab, pos, ((turno==0) ? 1 : 0));
+
+            let cont2 = MINIMAX(nuevo, turno, profundidad-1, true, a, b, heuristica);
+
+            if(cont2 < cont){
+                cont = cont2;
+            }
+
+            if(cont < b){
+                b = cont;
+            }
+            
+            if(b <= a){
+                break;
+            }
+        }
+    }
+    return cont;
+}
+
+function sinmovimientos(tablero){
+    return !(tienemovimientos(tablero,0) || tienemovimientos(tablero,1));
+}
+
+function tienemovimientos(tablero, turno){
+    return posibles_movimientos(tablero, turno).length >0;
+}
+
+function espacios_ocupados(tablero){
+    let cont = 0;
+    for(let i=0; i<8; i++){
+        for(let j=0; j<8; j++){
+            if(tablero[i][j] != 2){
+                cont = cont + 1;
+            }
+        }
+    }
+    return cont; 
+}
+
 
 //--> se crea una matriz de 8x8
 function llenarTablero(vector){
@@ -107,101 +222,101 @@ function libre_movimiento(tablero, turno, fila, columna){
     //------- verificamos los posibles movimientos hacia arriba
     mov_fil = fila - 1;
     mov_col = columna;
-    c = 0;
+    contador = 0;
 
     while(mov_fil>0 && tablero[mov_fil][mov_col] == oponente){
         mov_fil--;
-        c++;
+        contador++;
     }
-    if(mov_fil>=0 && tablero[mov_fil][mov_col] == turno && c>0){
+    if(mov_fil>=0 && tablero[mov_fil][mov_col] == turno && contador>0){
         return true;
     } 
 
     //------- verificamos los posibles movimientos hacia abajo 
     mov_fil = fila + 1;
     mov_col = columna;
-    c = 0;
+    contador = 0;
     while(mov_fil<7 && tablero[mov_fil][mov_col] == oponente){
          mov_fil++;
-         c++;
+         contador++;
      }
-     if(mov_fil<=7 && tablero[mov_fil][mov_col] == turno && c>0){
+     if(mov_fil<=7 && tablero[mov_fil][mov_col] == turno && contador>0){
          return true;
     }
 
      //------- verificamos los posibles movimientos hacia la izquierda
      mov_fil= fila;
      mov_col = columna - 1;
-     c = 0;
+     contador = 0;
      while(mov_col>0 && tablero[mov_fil][mov_col] == oponente){
          mov_col--;
-         c++;
+         contador++;
      }
-     if(mov_col>=0 && tablero[mov_fil][mov_col] == turno && c>0){
+     if(mov_col>=0 && tablero[mov_fil][mov_col] == turno && contador>0){
         return true;
      } 
 
      //------- verificamos los posibles movimientos hacia la derecha
      mov_fil= fila;
      mov_col = columna + 1;
-     c = 0;
+     contador = 0;
      while(mov_col<7 && tablero[mov_fil][mov_col] == oponente){
          mov_col++;
-         c++;
+         contador++;
      }
-     if(mov_col<=7 && tablero[mov_fil][mov_col] == turno && c>0){
+     if(mov_col<=7 && tablero[mov_fil][mov_col] == turno && contador>0){
         return true;
     } 
 
      //------- verificamos los posibles movimientos hacia arriba a la izquierda
      mov_fil= fila - 1;
      mov_col = columna - 1;
-     c = 0;
+     contador = 0;
      while(mov_fil>0 && mov_col>0 && tablero[mov_fil][mov_col] == oponente){
          mov_fil--;
          mov_col--;
-         c++;
+         contador++;
      }
-     if(mov_fil>=0 && mov_col>=0 && tablero[mov_fil][mov_col] == turno && c>0){
+     if(mov_fil>=0 && mov_col>=0 && tablero[mov_fil][mov_col] == turno && contador>0){
         return true;
     } 
 
      //------- verificamos los posibles movimientos hacia arriba a la derecha
      mov_fil= fila - 1;
      mov_col = columna + 1;
-     c = 0;
+     contador = 0;
      while(mov_fil>0 && mov_col<7 && tablero[mov_fil][mov_col] == oponente){
          mov_fil--;
          mov_col++;
-         c++;
+         contador++;
      }
-     if(mov_fil>=0 && mov_col<=7 && tablero[mov_fil][mov_col] == turno && c>0){
+     if(mov_fil>=0 && mov_col<=7 && tablero[mov_fil][mov_col] == turno && contador>0){
         return true;
     } 
 
      //------- verificamos los posibles movimientos hacia abajo a la izquierda
      mov_fil= fila + 1;
      mov_col = columna - 1;
-     c = 0;
+     contador = 0;
      while(mov_fil<7 && mov_col>0 && tablero[mov_fil][mov_col] == oponente){
          mov_fil++;
          mov_col--;
-         c++;
+         contador++;
      }
-     if(mov_fil<=7 && mov_col>=0 && tablero[mov_fil][mov_col] == turno && c>0){
+     if(mov_fil<=7 && mov_col>=0 && tablero[mov_fil][mov_col] == turno && contador>0){
         return true;
     } 
 
      //------- verificamos los posibles movimientos hacia abajo a la derecha
      mov_fil= fila + 1;
      mov_col = columna + 1;
-     c = 0;
+     contador = 0;
      while(mov_fil<7 && mov_col<7 && tablero[mov_fil][mov_col] == oponente){
          mov_fil++;
          mov_col++;
-         c++;
+         contador++;
      }
-     if(mov_fil<=7 && mov_col<=7 && tablero[mov_fil][mov_col] == turno && c>0){
+     if(mov_fil<=7 && mov_col<=7 && tablero[mov_fil][mov_col] == turno && contador>0){
         return true;
     } 
      
@@ -211,23 +326,35 @@ function libre_movimiento(tablero, turno, fila, columna){
     
 }
 
-
 function nuevo_tablero(tablero, movimiento, turno){
-    let nuevotab = new Array();
+    let nuevotab = [[0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0]];
 
+    //guardamos el tablero actual
     for(let i = 0; i < 8; i++){
         for(let j = 0; j < 8; j++){
             nuevotab[i][j] = tablero[i][j];
         }
     }
 
-    //simular el movimiento
+    //simula el movimiento
     nuevotab[movimiento[0]][movimiento[1]] = turno;
 
     //revertir
+    let arreglopos = revertir(tablero,turno,movimiento[0],movimiento[1]);
+    for(let pos of arreglopos){
+        nuevotab[pos[0]][pos[1]] = turno;
+    }
+
+    return nuevotab;
 
 }
-
 
 function revertir(tablero, turno, fila, columna){
     let rev_mov = new Array();
@@ -235,129 +362,133 @@ function revertir(tablero, turno, fila, columna){
     let mov_fil , mov_col; 
 
     //arriba
-    let mupts = new Array();
+    let arriba = new Array();
     mov_fil = fila - 1;
     mov_col = columna;
     while(mov_fil>0 && tablero[mov_fil][mov_col] == oponente){
-        mupts.push([mov_fil,mov_col]);
+        arriba.push([mov_fil,mov_col]);
         mov_fil--;
     }
-    if(mov_fil>=0 && tablero[mov_fil][mov_col] == turno && mupts.length>0){
+    if(mov_fil>=0 && tablero[mov_fil][mov_col] == turno && arriba.length>0){
         
-        mupts.forEach(element => {
+        arriba.forEach(element => {
             rev_mov.push(element);
         });
     }
 
 
     //abajo
-    let mdpts = new Array();
+    let abajo = new Array();
     mov_fil = fila + 1;
     mov_col = columna;
     while(mov_fil<7 && tablero[mov_fil][mov_col] == oponente){
-        mdpts.add([mov_fil,mov_col]);
+        abajo.push([mov_fil,mov_col]);
         mov_fil++;
     }
-    if(mov_fil<=7 && tablero[mov_fil][mov_col] == turno && mdpts.length>0){
+    if(mov_fil<=7 && tablero[mov_fil][mov_col] == turno && abajo.length>0){
          
-        mdpts.forEach(element => {
+        abajo.forEach(element => {
             rev_mov.push(element);
         });
     }
 
     //izquierda
-    let mlpts = new Array();
-    mov_fil = i;
+    let izquierda = new Array();
+    mov_fil = fila;
     mov_col = columna - 1;
     while(mov_col>0 && tablero[mov_fil][mov_col] == oponente){
-        mlpts.add([mov_fil,mov_col]);
+        izquierda.push([mov_fil,mov_col]);
         mov_col--;
     }
-    if(mov_col>=0 && tablero[mov_fil][mov_col] == turno && mlpts.length>0){
+    if(mov_col>=0 && tablero[mov_fil][mov_col] == turno && izquierda.length>0){
          
-        mlpts.forEach(element => {
+        izquierda.forEach(element => {
             rev_mov.push(element);
         });
     }
 
     //derecha
-    let mrpts = new Array();
-    mov_fil = i;
+    let derecha = new Array();
+    mov_fil = fila;
     mov_col = columna + 1;
     while(mov_col<7 && tablero[mov_fil][mov_col] == oponente){
-        mrpts.add([mov_fil,mov_col]);
+        derecha.push([mov_fil,mov_col]);
         mov_col++;
     }
-    if(mov_col<=7 && tablero[mov_fil][mov_col] == turno && mrpts.length>0){
+    if(mov_col<=7 && tablero[mov_fil][mov_col] == turno && derecha.length>0){
         
-        mrpts.forEach(element => {
+        derecha.forEach(element => {
             rev_mov.push(element);
         });
     }
 
     //arriba a la izquierda
-    let mulpts = new Array();
+    let arribaizq = new Array();
     mov_fil = fila - 1;
     mov_col = columna - 1;
     while(mov_fil>0 && mov_col>0 && tablero[mov_fil][mov_col] == oponente){
-        mulpts.add([mov_fil,mov_col]);
+        arribaizq.push([mov_fil,mov_col]);
         mov_fil--;
         mov_col--;
     }
-    if(mov_fil>=0 && mov_col>=0 && tablero[mov_fil][mov_col] == turno && mulpts.length>0){
+    if(mov_fil>=0 && mov_col>=0 && tablero[mov_fil][mov_col] == turno && arribaizq.length>0){
         
-        mulpts.forEach(element => {
+        arribaizq.forEach(element => {
             rev_mov.push(element);
         });
     }
 
     //arriba a la derecha
-    let murpts = new Array();
+    let arribader = new Array();
     mov_fil = fila - 1;
     mov_col = columna + 1;
     while(mov_fil>0 && mov_col<7 && tablero[mov_fil][mov_col] == oponente){
-        murpts.add([mov_fil,mov_col]);
+        arribader.push([mov_fil,mov_col]);
         mov_fil--;
         mov_col++;
     }
-    if(mov_fil>=0 && mov_col<=7 && tablero[mov_fil][mov_col] == turno && murpts.length>0){
+    if(mov_fil>=0 && mov_col<=7 && tablero[mov_fil][mov_col] == turno && arribader.length>0){
          
-        murpts.forEach(element => {
+        arribader.forEach(element => {
             rev_mov.push(element);
         });
     }
 
     //abajo a la izquierda
-    let mdlpts = new Array();
+    let abajoizq = new Array();
     mov_fil = fila + 1;
     mov_col = columna - 1;
     while(mov_fil<7 && mov_col>0 && tablero[mov_fil][mov_col] == oponente){
-        mdlpts.add([mov_fil,mov_col]);
+        abajoizq.push([mov_fil,mov_col]);
         mov_fil++;
         mov_col--;
     }
-    if(mov_fil<=7 && mov_col>=0 && tablero[mov_fil][mov_col] == turno && mdlpts.length>0){
+    if(mov_fil<=7 && mov_col>=0 && tablero[mov_fil][mov_col] == turno && abajoizq.length>0){
          
-        mdlpts.forEach(element => {
+        abajoizq.forEach(element => {
             rev_mov.push(element);
         });
     }
 
     //abajo a la derecha
-    let mdrpts = new Array();
+    let abajoder = new Array();
     mov_fil = fila + 1;
     mov_col = columna + 1;
     while(mov_fil<7 && mov_col<7 && tablero[mov_fil][mov_col] == oponente){
-        mdrpts.add([mov_fil,mov_col]);
+        abajoder.push([mov_fil,mov_col]);
         mov_fil++;
         mov_col++;
     }
-    if(mov_fil<=7 && mov_col<=7 && tablero[mov_fil][mov_col] == turno && mdrpts.length>0){
+    if(mov_fil<=7 && mov_col<=7 && tablero[mov_fil][mov_col] == turno && abajoder.length>0){
         
-        mdrpts.forEach(element => {
+        abajoder.forEach(element => {
             rev_mov.push(element);
         });
     }
     
    return rev_mov;
 }
+
+
+
+
